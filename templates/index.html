@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <style>
+        .container {
+            margin: 20px;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        #code {
+            width: calc(100% - 40px);
+            height: 200px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        #run-button {
+            margin-top: 10px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #run-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+    {% if username %}
+        <div class="container">
+            <textarea id="code" placeholder="Paste your code here"></textarea>
+            <button id="run-button" type="submit">Run</button>
+        </div>
+        <div id="result-container">
+            {% extends 'result.html' %}
+        </div>
+    {% else %}
+        <h2 style="align-items: center">
+            Run Python Code Online
+        </h2>
+    {% endif %}
+    <script>
+        let runButton = document.getElementById('run-button');
+        runButton.addEventListener('click', () => {
+            let codeTextarea = document.getElementById('code');
+            const code = codeTextarea.value; // Get the code from the textarea
+
+            // Make an API request to send the code to the backend
+            fetch('/submit-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code })
+            })
+            .then(response => response.text())
+            .then(output => {
+                // Replace the content of the result container with the execution output
+                let resultContainer = document.getElementById('result-container');
+                resultContainer.innerHTML = output;
+            })
+            .catch(error => {
+                // Handle any errors that occur during the API request
+                console.error(error);
+            });
+        });
+    </script>
+{% endblock %}
