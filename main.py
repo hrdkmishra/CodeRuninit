@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 from subprocess import Popen, PIPE
-
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -26,7 +25,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 @app.get("/", response_class=HTMLResponse)
-async def home_get(request: Request):
+async def home_get(request: Request):  # Provide the initial value of the code variable
     return templates.TemplateResponse("index.html", {"request": request})
 
 
@@ -180,7 +179,7 @@ async def submit_code(request: Request, code_request: CodeRequest):
         {"$set": {"output": execution_result}}
     )
 
-    return templates.TemplateResponse("result.html", {"request": request, "output": execution_result})
+    return JSONResponse({"output": execution_result})
 
 
 def generate_submission_id():

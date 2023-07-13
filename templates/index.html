@@ -3,25 +3,74 @@
 {% block content %}
     <style>
         .container {
+            display: flex;
             margin: 20px;
             max-width: 100%;
             box-sizing: border-box;
         }
 
+        .editor-container {
+            flex: 1;
+            position: relative;
+            margin-right: 10px;
+        }
+
+         .editor {
+            display: flex;
+            flex-direction: row;
+            font-family: monospace;
+            line-height: 21px;
+            background: #282a3a;
+            border-radius: 2px;
+            padding: 0;
+            height: calc(100vh - 80px);
+        }
+
+
+        .line-numbers {
+            width: 20px;
+            text-align: right;
+        }
+
+        .line-numbers span {
+            counter-increment: linenumber;
+        }
+
+        .line-numbers span::before {
+            content: counter(linenumber);
+            display: block;
+            color: #506882;
+        }
+
         #code {
-            width: calc(100% - 40px);
-            height: 200px;
+            flex: 1;
+            line-height: 21px;
+            overflow-y: hidden;
+            padding: 0px 5px;
+            border: 0;
+            background: #282a3a;
+            color: #FFF;
+            width: 100%;
+            outline: none;
+            resize: none;
+        }
+
+        .console {
+            flex: 1;
+            background-color: black;
+            color: white;
             padding: 20px;
             font-family: 'Courier New', monospace;
             font-size: 14px;
             line-height: 1.5;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            resize: vertical;
+            overflow: auto;
+            height: calc(100vh - 80px);
         }
 
         #run-button {
-            margin-top: 10px;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
             background-color: #4CAF50;
             color: white;
             padding: 10px 20px;
@@ -30,6 +79,7 @@
             font-size: 16px;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            z-index: 999;
         }
 
         #run-button:hover {
@@ -38,11 +88,16 @@
     </style>
     {% if username %}
         <div class="container">
-            <textarea id="code" placeholder="Paste your code here"></textarea>
+            <div class="editor-container">
+                <div class="editor">
+                    <div class="line-numbers">
+                        <span></span>
+                    </div>
+                    <textarea id="code" placeholder="Paste your code here"></textarea>
+                </div>
+            </div>
+            <div class="console" id="console"></div>
             <button id="run-button" type="submit">Run</button>
-        </div>
-        <div id="result-container">
-            {% extends 'result.html' %}
         </div>
     {% else %}
         <h2 style="align-items: center">
@@ -50,10 +105,23 @@
         </h2>
     {% endif %}
     <script>
+        const textarea = document.getElementById('code');
+        const lineNumbers = document.querySelector('.line-numbers');
+        const consoleElement = document.getElementById('console');
+
+        textarea.addEventListener('input', event => {
+            const numberOfLines = event.target.value.split('\n').length;
+
+            lineNumbers.innerHTML = Array(numberOfLines)
+                .fill('<span></span>')
+                .join('');
+        });
+
         let runButton = document.getElementById('run-button');
-        runButton.addEventListener('click', () => {
-            let codeTextarea = document.getElementById('code');
-            const code = codeTextarea.value; // Get the code from the textarea
+        runButton.addEventListener('click', event => {
+            event.preventDefault(); // Prevent form submission
+
+            const code = textarea.value; // Get the code from the textarea
 
             // Make an API request to send the code to the backend
             fetch('/submit-code', {
@@ -63,11 +131,10 @@
                 },
                 body: JSON.stringify({ code })
             })
-            .then(response => response.text())
-            .then(output => {
-                // Replace the content of the result container with the execution output
-                let resultContainer = document.getElementById('result-container');
-                resultContainer.innerHTML = output;
+            .then(response => response.json())
+            .then(data => {
+                // Handle the response from the backend
+                consoleElement.innerText = data.output || 'No output available.';
             })
             .catch(error => {
                 // Handle any errors that occur during the API request
