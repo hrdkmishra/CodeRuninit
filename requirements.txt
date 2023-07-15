@@ -26,3 +26,4 @@ watchfiles==0.19.0
 websockets==11.0.3
 
 RestrictedPython~=6.1
+docker~=6.1.3

@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
-from subprocess import Popen, PIPE
+
+import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +10,8 @@ from passlib.context import CryptContext
 import jwt
 from pydantic import BaseModel
 from starlette.responses import JSONResponse
+import docker
+from docker.errors import ContainerError
 
 from db.db import collection, coderunner
 
@@ -171,7 +174,7 @@ async def submit_code(request: Request, code_request: CodeRequest):
     coderunner.insert_one(submission)
 
     # Execute the code in a sandbox environment
-    execution_result = execute_code(code)
+    execution_result = execute_code_in_container(code)
 
     # Update the submission with the execution result
     coderunner.update_one(
@@ -186,11 +189,25 @@ def generate_submission_id():
     return str(uuid.uuid4())
 
 
-def execute_code(code: str) -> str:
-    process = Popen(["python", "-c", code], stdout=PIPE, stderr=PIPE, text=True)
-    stdout, stderr = process.communicate()
+def execute_code_in_container(code: str) -> str:
+    # Docker image name
+    image_name = "sha256:4f1757fa5d3c15bfb1811a676ca3994944f50785394697cdff9912a9cf75d081"
+    docker_client = docker.from_env()
 
-    if stderr:
-        return f"Error: {stderr}"
-    else:
-        return stdout
+    try:
+        # Run the Docker container with the code as a command
+        container = docker_client.containers.run(
+            image_name,
+            command=["python", "-c", code],
+            remove=True
+        )
+        output = container.decode("utf-8").strip()
+
+    except ContainerError as e:
+        output = str(e)
+
+    return output
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", reload=True)
